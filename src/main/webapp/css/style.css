@@ -654,6 +654,11 @@ input {
 	margin-bottom: 30px;
 }
 
+.popup-modal-flag-message {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
 .popup-modal-button {
 	float: right;
 }

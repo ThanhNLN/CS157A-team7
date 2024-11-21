@@ -165,7 +165,7 @@ function submitMarker(event) {
 			setTimeout(function() {
 				lottieFileAnim.style.display = "none";
 				closeModal();
-				createPopup(sighting, (sighting) ? "Your edits have been saved." : "Thank you for your report! It's been successfully created.", "Close", "");
+				createPopup(sighting, (sighting) ? "Your edits have been saved." : "Thank you for your report! It's been successfully created.", "Close", "", false);
 			}, 3000);
 		})
 		.catch(error => console.error('Error:', error));
@@ -182,20 +182,53 @@ function attachInfoWindow(marker, content) {
 	});
 }
 
-function createPopup(sighting, message, primaryButtonText, secondaryButtonText, primaryCallback) {
+function createPopup(sighting, message, primaryButtonText, secondaryButtonText, primaryCallback, flagPopup, curUser) {
 	const popupContainer = document.getElementById("popupContainer");
 	popupContainer.classList.add('popup-modal');
 	const popup = document.createElement('div');
 	popup.classList.add('popup-modal-content');
 	const popupMessage = document.createElement('p');
 	popupMessage.textContent = message;
-	popupMessage.classList.add('popup-modal-message');
+	popupMessage.classList.add(flagPopup ? 'popup-modal-flag-message' : 'popup-modal-message');
 	popup.appendChild(popupMessage);
-	if (secondaryButtonText !== "") {
-		createSaveCancelButtons(popup, primaryButtonText, secondaryButtonText, primaryCallback, function() {
-			popupContainer.removeChild(popup);
-			popupContainer.classList.remove('popup-modal');
+	const textField = document.createElement("textarea");
+	textField.setAttribute("id", "flagReasonBox");
+	const form = document.createElement("form");
+	form.appendChild(textField);
+	if (flagPopup) {
+		textField.focus();
+		form.addEventListener("submit", function(e) {
+			e.preventDefault();
+			const reason = document.getElementById("flagReasonBox").value.trim();
+			fetch('/myFlorabase/flagSighting', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+				},
+				body: 'userId=' + curUser.userId + '&sightingId=' + sighting.sightingId + '&reason=' + reason
+			})
+				.then(response => response.text())
+				.then(data => {
+					console.log("Successfully flagged sighting");
+					popupContainer.removeChild(popup);
+					popupContainer.classList.remove('popup-modal');
+				})
+				.catch(error => console.error('Error:', error));
 		});
+	}
+	if (secondaryButtonText !== "") {
+		if (flagPopup) {
+			createButtonGroup(form, primaryButtonText, secondaryButtonText, function() {
+				popupContainer.removeChild(popup);
+				popupContainer.classList.remove('popup-modal');
+			});
+			popup.appendChild(form);
+		} else {
+			createSaveCancelButtons(popup, primaryButtonText, secondaryButtonText, primaryCallback, function() {
+				popupContainer.removeChild(popup);
+				popupContainer.classList.remove('popup-modal');
+			});
+		}
 	} else {
 		const primaryButton = document.createElement("button");
 		primaryButton.classList.add("primary-button", "popup-modal-button");

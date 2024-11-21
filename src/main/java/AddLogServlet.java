@@ -128,7 +128,7 @@ public class AddLogServlet extends HttpServlet {
 		return locationName;
 	}
 
-	private Plant getPlantInformation(String plantName) {
+	public Plant getPlantInformation(String plantName) {
 		String scientificName = "";
 		String description = "";
 		boolean poisonous = false;
@@ -249,7 +249,7 @@ public class AddLogServlet extends HttpServlet {
 		return locationId;
 	}
 
-	private int getOrInsertPlant(java.sql.Connection con, Plant plant) throws SQLException {
+	public int getOrInsertPlant(java.sql.Connection con, Plant plant) throws SQLException {
 		int plantId = 0;
 		String selectPlantSQL = "SELECT plant_id FROM Plant WHERE name = ?";
 		try (PreparedStatement selectPlantStatement = con.prepareStatement(selectPlantSQL)) {
