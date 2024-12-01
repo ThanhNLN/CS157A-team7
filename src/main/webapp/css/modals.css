@@ -11,7 +11,7 @@ html, body {
     position: fixed;
     z-index: 1;
     left: 0;
-    top: 110px;
+    top: 100px;
     width: 100%;
     height: calc(100vh - 80px);
     overflow: hidden;
@@ -50,6 +50,7 @@ select {
 }
 
 #filterModalContent {
+	min-height: 100%;
 	height: fit-content;
 	margin-bottom: 40px;
 }

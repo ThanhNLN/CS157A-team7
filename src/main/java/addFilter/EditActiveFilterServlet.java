@@ -52,57 +52,13 @@ public class EditActiveFilterServlet extends HttpServlet {
 				System.out.println("Inactive filter_id: " + Integer.parseInt(value));
 			}
 		}
-		
-//		HttpSession session = request.getSession(false);
-//		User user = (User) session.getAttribute("user");
 
-		String databaseUser = "root";
-		String databasePassword = System.getenv("DB_PASSWORD");
-
-		java.sql.Connection con = null;
-
-		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/myFlorabase?autoReconnect=true&useSSL=false",
-					databaseUser, databasePassword);
-
-			String activateFiltersSQL = "UPDATE myflorabase.filter SET active=1 WHERE filter_id = ?;";
-			PreparedStatement ps = con.prepareStatement(activateFiltersSQL);
-			if (activeFilters != null) {
-				for (String value : activeFilters) {
-					ps.setInt(1, Integer.parseInt(value));
-					ps.executeUpdate();
-				}
-			}
-			
-			String deactivateFiltersSQL = "UPDATE myflorabase.filter SET active=0 WHERE filter_id = ?;";
-			PreparedStatement ps2 = con.prepareStatement(deactivateFiltersSQL);
-			if (inactiveFilters != null) {
-				for (String value : inactiveFilters) {
-					ps2.setInt(1, Integer.parseInt(value));
-					ps2.executeUpdate();
-				}
-			}
-			
-		} catch (SQLException e) {
-			System.out.println("SQLException caught: " + e.getMessage());
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			System.out.println("MySQL JDBC Driver not found: " + e.getMessage());
-			e.printStackTrace();
-		} finally {
-			if (con != null) {
-				try {
-					con.close();
-				} catch (SQLException e) {
-					System.out.println("Failed to close the connection: " + e.getMessage());
-				}
-			}
-		}
+		FilterDao fDao = new FilterDao();
+		String successLog = fDao.editActiveFilters(activeFilters, inactiveFilters);
 
 		response.setContentType("text/plain");
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().write("Log received and processed successfully.");
+		response.getWriter().write(successLog);
 	}
 
 }

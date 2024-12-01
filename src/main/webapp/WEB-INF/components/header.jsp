@@ -7,6 +7,9 @@
 	<%
 	HttpSession curSession = request.getSession(false);
 	User user = (User) curSession.getAttribute("user");
+	if (user == null) {
+		request.setAttribute("generalSightingActive", "active");
+	}
 	%>
 
 	<span id="navbar"> <img id="logo-img"
@@ -14,15 +17,27 @@
 		<h1 id="headerText" class="header-text">myFlorabase</h1> <span
 		class="topnav" id="right-Topnav">
 			<button id="admin" onClick="adminPage()"
-				style="display: <%=user.isAdmin() ? "inline" : "none"%>"
+				style="display: <%=user != null && user.isAdmin() ? "inline" : "none"%>"
 				class="${adminPageActive}-admin hover-underline-animation-admin header-text">Admin
 				Page</button>
 			<button id="sightings" onClick="sightings()"
-				class="${generalSightingActive}-<%=user.isAdmin() ? "admin" : "regular"%> hover-underline-animation-<%=user.isAdmin() ? "admin" : "regular"%> header-text">Sightings</button>
+				class="${generalSightingActive}-<%=user != null && user.isAdmin() ? "admin" : "regular"%> hover-underline-animation-<%=user != null && user.isAdmin() ? "admin" : "regular"%> header-text">Sightings</button>
+			<%
+			if (user != null) {
+			%>
 			<button id="mySightings" onClick="mySightings()"
 				class="${mySightingActive}-<%=user.isAdmin() ? "admin" : "regular"%> hover-underline-animation-<%=user.isAdmin() ? "admin" : "regular"%> header-text">My
-				Sightings</button>
-	</span> <span id="profile-container" class="profile-dropdown">
+				Sightings</button> <%
+ } else {
+ %>
+			<button id="loginHeaderButton" onClick="login()"
+				class="regular hover-underline-animation-regular header-text">Login</button>
+			<%
+			}
+			%>
+	</span> <%
+ if (user != null) {
+ %> <span id="profile-container" class="profile-dropdown">
 			<button id="profile-button"
 				class="<%=user.isAdmin() ? "admin" : "regular"%>"
 				onClick="profile()">
@@ -38,7 +53,9 @@
 				<button class="profile-dropdown-button" onClick="logOut()">Log
 					Out</button>
 			</div>
-	</span>
+	</span> <%
+ }
+ %>
 
 	</span>
 
@@ -63,9 +80,13 @@
 	function profile() {
 		window.location = 'profile';
 	}
+	
+	function login() {
+		window.location = 'login';
+	}
 
 	function logOut() {
-		window.location = 'login';
+		window.location = 'logout';
 	}
 </script>
 

@@ -726,3 +726,25 @@ select#filterColor {
 	display: flex;
 	justify-content: flex-end;
 }
+
+#filterColor {
+	margin: 8px 0;
+}
+
+#tagList {
+	width: 100%;
+	flex-wrap: wrap;
+}
+
+.tag {
+	width: fit-content;
+	margin-top: 10px;
+	margin-right: 10px;
+	border: #B49C73 1px solid;
+	border-radius: 30px;
+}
+
+#noPlantErrorMsg {
+	margin-top: 10px;
+	display: none;
+}

@@ -11,7 +11,7 @@ import javax.servlet.http.HttpSession;
 /**
  * Servlet implementation class LogoutServlet
  */
-@WebServlet("/login")
+@WebServlet("/logout")
 public class LogoutServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
@@ -29,7 +29,7 @@ public class LogoutServlet extends HttpServlet {
 			session.invalidate(); // Invalidates the session
 		}
 		request.setAttribute("errorMessage", "Please sign in again to access your account");
-		request.getRequestDispatcher("login.jsp").forward(request, response);
+		request.getRequestDispatcher("sightings.jsp").forward(request, response);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)

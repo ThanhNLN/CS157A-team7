@@ -24,7 +24,6 @@ public class PlantServlet extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		String plantName = request.getParameter("plantName");
-		// want to check if this plant exists, if so, return
 		String dUser = "root";
 		String pwd = System.getenv("DB_PASSWORD");
 		Plant plant = null;
@@ -36,7 +35,7 @@ public class PlantServlet extends HttpServlet {
 			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/?autoReconnect=true&useSSL=false", dUser,
 					pwd);
 			Statement statement = con.createStatement();
-			String fetchPlantSQL = "SELECT * FROM myflorabase.user WHERE plant_name = " + plantName;
+			String fetchPlantSQL = "SELECT * FROM myflorabase.plant WHERE name = '" + plantName + "'";
 			ResultSet rs = statement.executeQuery(fetchPlantSQL);
 			if (rs.next()) {
 				int plantId = rs.getInt("plant_id");

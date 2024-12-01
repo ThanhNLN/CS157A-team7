@@ -24,10 +24,10 @@ public class generalSightingsServlet extends HttpServlet {
 
 		HttpSession curSession = request.getSession(false);
 
-		if (curSession == null || curSession.getAttribute("user") == null) {
+		if (curSession == null) {
 			request.setAttribute("errorTitle", "You were logged out!");
 			request.setAttribute("errorMessage", "Please Sign In again.");
-			request.getRequestDispatcher("login.jsp").forward(request, response);
+			request.getRequestDispatcher("sightings.jsp").forward(request, response);
 		} else {
 
 			RequestDispatcher dispatcher = request.getRequestDispatcher("sightings.jsp"); // this needs to be changed to
