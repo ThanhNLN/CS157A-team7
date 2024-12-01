@@ -162,11 +162,24 @@ async function initMap() {
 				}
 
 				if (markersMap.has(locationKey)) {
-					// If marker exists, add new sighting content to the existing marker
 					const existingMarkerData = markersMap.get(locationKey);
+					existingMarkerData.marker.setMap(null); // Remove old marker
+					markersMap.delete(locationKey); // Delete old marker from map
+
+					// Create new marker with combined content
 					const newMarkerContent = existingMarkerData.infoContent + '<hr/>' + infoContent;
-					existingMarkerData.infoContent = newMarkerContent;
-					attachInfoWindow(existingMarkerData.marker, locationHeader + newMarkerContent);
+					const newMarker = new AdvancedMarkerElement({
+						map: map,
+						position: location,
+						title: info[2].name,
+					});
+					console.log('Updated marker added for location:', info[2].name);
+
+					markersMap.set(locationKey, {
+						marker: newMarker,
+						infoContent: newMarkerContent
+					});
+					attachInfoWindow(newMarker, newMarkerContent);
 				} else {
 					// Create and store a new marker if one does not exist at this location
 					const newMarker = new AdvancedMarkerElement({
@@ -226,5 +239,5 @@ async function initMap() {
 }
 
 window.initMap = initMap;
-console.log("Tes2t");
+console.log("Test");
 initMap();

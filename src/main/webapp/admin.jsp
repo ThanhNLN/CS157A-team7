@@ -5,15 +5,11 @@ String apiKey = System.getenv("GOOGLE_MAPS_API_KEY");
 HttpSession curSession = request.getSession(false);
 User user = (User) curSession.getAttribute("user");
 String userJson = new Gson().toJson(user);
-boolean sightingsPage = true;
-if (request.getAttribute("mySightingActive") != null) {
-	sightingsPage = false;
-}
 %>
 <!DOCTYPE html>
 <html>
 <head>
-<title><%=sightingsPage ? "Sightings" : "My Sightings"%></title>
+<title>Admin Page</title>
 <!-- Link to External CSS -->
 <link rel="icon" href="assets/myFlorabase_Logo_No_Text.svg"
 	type="image/svg">
@@ -26,163 +22,65 @@ if (request.getAttribute("mySightingActive") != null) {
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-	<div id="sightingsPage" class="sightingsPage">
-		<div id="header"><jsp:include
-				page="WEB-INF/components/header.jsp"></jsp:include></div>
-
-
-		<div id="sightingsDiv">
-			<div>
-				<div id="map" class="column"></div>
-				<div id="container">
-					<button class="major-button secondary-button" type="button"
-						id="tree">Tree</button>
-					<button class="major-button secondary-button" type="button"
-						id="grass">Grass</button>
-					<button class="major-button secondary-button" type="button"
-						id="weed">Weed</button>
-					<button class="major-button secondary-button" type="button"
-						id="none">None</button>
-				</div>
-			</div>
-			<div class="column sightings-column">
-				<div class="sightings-component sightings-column-div">
-					<span class="sightings-title"><h1 class="pageTitle"><%=sightingsPage ? "Sightings" : "My Sightings"%></h1>
-						<div>
-							<img src='assets/filter_icon.svg' width="30" height="30"
-								onclick="showFilterDropdown()" /> <span id="filterDropdown">
-								<div>
-									<label class="checkbox-label prevent-select"> <input
-										id="mostRecentCheckbox" type="checkbox"
-										onchange="dropdownSubmit(this)"> <span
-										class="checkbox"></span> Most Recent
-									</label> <label class="checkbox-label prevent-select"> <input
-										id="oldestCheckbox" type="checkbox"
-										onchange="dropdownSubmit(this)"> <span
-										class="checkbox"></span> Oldest
-									</label> <span id="filterDropdownCloseButton">
-										<button class="major-button secondary-button" type="button"
-											onclick="hideFilterDropdown()">Close</button>
-									</span>
-								</div>
-
-							</span>
-						</div> </span>
-					<!-- Search bar -->
-					<%
-					if (sightingsPage) {
-					%>
-					<div class="search-container">
-						<form action="SearchBarServlet" method="get">
-							<input id="searchBar" type="text" class="icon" name="searchQuery"
-								id="searchQuery" placeholder="Search for a specific plant"
-								oninput="handleInputSanitization()" required />
-						</form>
-					</div>
-					<%
-					} else {
-					%>
-					<div class="spacer"></div>
-					<%
-					}
-					%>
-					<div id="sightingsList"></div>
-				</div>
-
-
-
-			</div>
-		</div>
+	<jsp:include page="WEB-INF/components/header.jsp"></jsp:include>
+	<div id="sightingsPage" class="adminPage">
+		<h1 id="flaggedSightingsTitle" class="pageTitle">Investigate
+			Flagged Sightings</h1>
+		<div id="sightingsList"></div>
 		<!-- Modal Structure -->
 		<jsp:include page="WEB-INF/components/modal.jsp"></jsp:include>
-		<!-- Error Box to handle Search -->
-		<jsp:include page="WEB-INF/components/errorBox.jsp" />
 		<div id="popupContainer"></div>
 	</div>
 
 	<script src="./js/buttons.js"></script>
 	<script src="./js/modal.js"></script>
 	<script>
-	
 	window.addEventListener("load", function() {
-		const isSightingsPage = <%=sightingsPage%>;
-		const sightingsListContainer = document.getElementById('sightingsList');
-        fetch("/myFlorabase/getSightings")
+        var sightingsListContainer = document.getElementById('sightingsList');
+        fetch("/myFlorabase/getFlaggedSightings")
         .then(response => {
           return response.json();
         })
         .then(sightings => {
           console.log(sightings);  
-          sightings.forEach(sighting => {
-        	  fetch("/myFlorabase/getSightingInfo?userId=" + sighting.userId + "&plantId=" + sighting.plantId + "&locationId=" + sighting.locationId, {
-        		  method: 'GET',
-        		})
-        	  .then(response => {
-        		  return response.json();
-        	  })
-        	  .then(info => {
-        		  console.log(info);
-        		  // info[0] = user, info[1] = plant, info[2] = location
-        		  const curUser = <%=userJson%>;
-        		  if (isSightingsPage) {
-        			  const sightingComponent = createSighting(sighting, info[0], info[1], info[2], curUser);
-                	  sightingsListContainer.appendChild(sightingComponent);
-        		  } else {
-        			  if (info[0].username === curUser.username) {
-        				  const sightingComponent = createSighting(sighting, info[0], info[1], info[2], curUser);
+          if (sightings.length === 0) {
+        	  const noFlaggedSightingsMsg = document.createElement('p');
+        	  noFlaggedSightingsMsg.textContent = "There are currently no flagged sightings.";
+        	  const sightingsList = document.getElementById("sightingsList");
+        	  sightingsList.appendChild(noFlaggedSightingsMsg);
+          } else {
+        	  sightings.forEach(sighting => {
+            	  fetch("/myFlorabase/getSightingInfo?userId=" + sighting.userId + "&plantId=" + sighting.plantId + "&locationId=" + sighting.locationId, {
+            		  method: 'GET',
+            		})
+            	  .then(response => {
+            		  return response.json();
+            	  })
+            	  .then(info => {
+            		  console.log(info);
+            		  // info[0] = user, info[1] = plant, info[2] = location
+            		  fetch("/myFlorabase/getFlaggedReason?sightingId=" + sighting.sightingId, {
+            			  method: 'GET'
+            			  })
+            		  .then(response => {
+            			  return response.text()
+            		  })
+            		  .then(reason => {
+            			  console.log(reason);
+            			  const curUser = <%=userJson%>;
+            			  console.log(info);
+            			  const sightingComponent = createSighting(sighting, info[0], info[1], info[2], curUser, reason);
                     	  sightingsListContainer.appendChild(sightingComponent);
-        			  }
-        		  }
-        	  })
-        	  .catch(error => {
-        		  console.error("Issue with fetching from FetchSightingInfo", error);
-        	  });
+            		  })
+            		  })
+            	  })
+          }
           })
         })
-        .catch(error => {
-          console.error("Issue with fetching from FetchSightingsServlet", error);
-        });
-    })
 		
-    	function showFilterDropdown() {
-		const dropdownContainer = document.getElementById("filterDropdown");
-		dropdownContainer.style.display = "block";
-	}
-	
-	function hideFilterDropdown() {
-		const dropdownContainer = document.getElementById("filterDropdown");
-		dropdownContainer.style.display = "none";
-	}
-	
-	function dropdownSubmit(checkbox) {
-		const label = checkbox.closest('label');
-		const labelText = label.textContent.trim();
-		// check if another checkbox is checked, if so must uncheck it
-		const mostRecentCheckbox = document.getElementById("mostRecentCheckbox");
-		const oldestCheckbox = document.getElementById("oldestCheckbox");
-		if (labelText === "Oldest" && mostRecentCheckbox.checked) {
-			mostRecentCheckbox.checked = false;
-		} else if (labelText === "Most Recent" && oldestCheckbox.checked) {
-			oldestCheckbox.checked = false;
-		}
-		const sightingsList = document.getElementById("sightingsList");
-		const sightingsArr = Array.from(sightingsList.children);
-		sightingsArr.sort((a, b) => {
-		    const textA = a.childNodes[0].childNodes[0].childNodes[1].childNodes[1].childNodes[1].childNodes[2].childNodes[0].data.trim().slice(3);
-		    const textB = b.childNodes[0].childNodes[0].childNodes[1].childNodes[1].childNodes[1].childNodes[2].childNodes[0].data.trim().slice(3);
-			const dateA = new Date(textA);
-			const dateB = new Date(textB);
-			if (labelText === "Most Recent") {
-		        return dateB - dateA;
-		    } 
-			return dateA - dateB;
-		});
-		console.log(sightingsArr);
-		sightingsList.replaceChildren(...sightingsArr);
-		hideFilterDropdown();
-	}
         
-        function createSighting(sighting, user, plant, location, curUser) {
+        function createSighting(sighting, user, plant, location, curUser, reason) {
+		console.log(user);
         	const sightingComponent = document.createElement('div');
         	const headerContainer = document.createElement('div');
         	  sightingComponent.classList.add('prevent-select', 'sightings-component');
@@ -208,27 +106,6 @@ if (request.getAttribute("mySightingActive") != null) {
 
         	  const iconRow = document.createElement('span');
         	  iconRow.classList.add('icon-row');
-
-        	  const editButton = document.createElement('button');
-        	  editButton.classList.add('icon-button');
-        	  const editIcon = document.createElement('img');
-        	  editIcon.src = 'assets/edit_icon.svg';
-        	  editIcon.width = 20;
-        	  editIcon.height = 20;
-        	  editIcon.classList.add(curUser.isAdmin || curUser.username === user.username ? 'icon-shown' : 'icon-hidden');
-        	  editIcon.addEventListener('mouseover', function() {
-        		  changeImage(this, 'assets/edit_icon_hover.svg');
-        		});
-
-        		editIcon.addEventListener('mouseout', function() {
-        		  changeImage(this, 'assets/edit_icon.svg');
-        		});
-
-        		editIcon.addEventListener('click', function() {
-        		  changeImage(this, 'assets/edit_icon_hover.svg');
-        		  editSighting(location.latitude, location.longitude, sighting, plant);
-        		});
-        	  editButton.appendChild(editIcon);
 
         	  const trashButton = document.createElement('button');
         	  trashButton.classList.add('icon-button');
@@ -267,11 +144,10 @@ if (request.getAttribute("mySightingActive") != null) {
 
         		flagIcon.addEventListener('click', function() {
         		  changeImage(this, 'assets/flag_icon_hover.svg');
-        		  flagSighting(sighting, curUser);
+        		  unFlagSighting(sighting, curUser);
         		});
         	  flagButton.appendChild(flagIcon);
 
-        	  iconRow.appendChild(editButton);
         	  iconRow.appendChild(trashButton);
         	  iconRow.appendChild(flagButton);
 
@@ -336,6 +212,14 @@ if (request.getAttribute("mySightingActive") != null) {
         	  const description = document.createElement('p');
         	  description.classList.add('sighting-row');
         	  description.textContent = sighting.description;
+        	  
+        	  const reasonLabel = document.createElement('p');
+        	  reasonLabel.classList.add('sighting-row', 'description-label');
+        	  reasonLabel.textContent = 'Reason for Flag';
+        	  
+        	  const reasonMsg = document.createElement('p');
+        	  description.classList.add('sighting-row');
+        	  reasonMsg.textContent = reason;
 
         	  const tagRow = document.createElement('span');
         	  tagRow.classList.add('tag-row');
@@ -375,6 +259,8 @@ if (request.getAttribute("mySightingActive") != null) {
         	  sightingDetails.appendChild(locationRow);
         	  sightingDetails.appendChild(descriptionLabel);
         	  sightingDetails.appendChild(description);
+        	  sightingDetails.appendChild(reasonLabel);
+        	  sightingDetails.appendChild(reasonMsg);
         	  sightingDetails.appendChild(tagRow);
 
         	  sightingComponent.appendChild(sightingDetails);
@@ -415,10 +301,19 @@ if (request.getAttribute("mySightingActive") != null) {
     		}, false);
     	}
     	
-    	function flagSighting(sighting, curUser) {
-    		createPopup(sighting, "Submit a reason for flagging this sighting", "Flag", "Cancel", function(flagReason) {
-    			console.log(flagReason);
-    		}, true, curUser);
+    	function unFlagSighting(sighting) {
+    		fetch("/myFlorabase/unflagSighting", {
+    			method: 'POST',
+    			headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'sightingId=' + sighting.sightingId
+    		})
+    		.then(response => response.text())
+			                .then(data => {
+			                    createPopup(sighting, "This sighting has been unflagged.", "Close", "", false);
+			                })
+			                .catch(error => console.error('Error:', error));
     	}
     </script>
 

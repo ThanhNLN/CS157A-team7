@@ -25,7 +25,6 @@
 		System.out.println("DB_PASSWORD environment variable is not set.");
 	}
 
-	MapPreference mp = null;
 	List<Filter> filters = new ArrayList<>();
 	try {
 		java.sql.Connection con;
@@ -40,26 +39,23 @@
 			String password = rs.getString("password");
 			String description = rs.getString("description");
 			boolean isAdmin = rs.getBoolean("isAdmin");
-			user = new User(userId, username, password, description, isAdmin);
-		}
-		String mapPreferenceSQL = "SELECT * FROM myflorabase.mappreference WHERE user_id=" + user.getUserId();
-		rs = statement.executeQuery(mapPreferenceSQL);
-		if (rs.next()) {
-			int preferenceId = rs.getInt("preference_id");
-			int prefUserId = rs.getInt("user_id");
-			int prefFilterId = rs.getInt("filter_id");
-			int prefLocationId = rs.getInt("location_id");
 			int zoom = rs.getInt("zoom");
-			mp = new MapPreference(preferenceId, prefUserId, prefFilterId, prefLocationId, zoom);
+			int location_id = rs.getInt("location_id");
+			user = new User(userId, username, password, description, isAdmin, zoom, location_id);
 		}
 
-		String filtersSQL = "SELECT * FROM myflorabase.filter WHERE filter_id=" + mp.getFilterId();
+		String filtersSQL = "SELECT uf.filter_id, color, filter_name, active FROM myflorabase.user_filter uf, myflorabase.filter f WHERE uf.filter_id = f.filter_id AND user_id = '" + user.getUserId() + "'";
 		rs = statement.executeQuery(filtersSQL);
 		while (rs.next()) {
 			int filterId = rs.getInt("filter_id");
 			String color = rs.getString("color");
 			String filterName = rs.getString("filter_name");
-			Filter filter = new Filter(filterId, color, filterName);
+			int active = rs.getInt("active");
+			boolean isActive = false;
+			if (active == 1){
+				isActive = true;
+			}
+			Filter filter = new Filter(filterId, color, filterName, isActive);
 			filters.add(filter);
 		}
 
@@ -187,7 +183,7 @@
 			                    headers: {
 			                        'Content-Type': 'application/x-www-form-urlencoded',
 			                    },
-			                    body: 'zoom=' + encodeURIComponent(newZoom) + '&preferenceId=' + <%=mp.getPreferenceId()%>
+			                    body: 'zoom=' + encodeURIComponent(newZoom)<%--  + '&preferenceId=' + <%=mp.getPreferenceId()%> --%>
 			                })
 			                .then(response => response.text())
 			                .then(data => {
@@ -244,16 +240,13 @@
 			// selected plants
 			const selectedPlants = document.querySelectorAll('#filterForm input[type="checkbox"]:checked');
 			
-			if (filterName.length === 0){
-				alert('Please enter a filter name.');
-				return;
-			}
-			
 			if (selectedPlants.length === 0) {
 		        alert('Please select at least one plant option.');
 		        return;  // Prevent form submission if no checkbox is selected
 		    }
 			
+			// filter color
+			const filterColor = document.getElementById('filterColor').value;
 			
 			// Prepare URL-encoded data
 			const formData = new FormData();
@@ -264,6 +257,8 @@
 		    });
 			
 			formData.append('filterName', filterName);
+			
+			formData.append('filterColor', filterColor);
 			
 			 // Log each key-value pair in the FormData object
 	        for (const [key, value] of formData.entries()) {
@@ -280,8 +275,76 @@
 				.catch(error => console.error('Error:', error));
 
 			// Close the new filter modal
+						
 			closeNewFilterModal();
+
+			setTimeout(function() {
+			    location.reload();
+			}, 3000);
 		}
+		
+		// activate/deactivate filters
+	    function updateActiveFilters() {
+	    	
+	    	const filterCheckboxes = document.querySelectorAll('.filters-checkbox');
+	      	const activeFilters = [];
+	      	const inactiveFilters = [];
+	        filterCheckboxes.forEach(checkbox => {
+	        	if (checkbox.checked) {
+	        		activeFilters.push(checkbox.value);  // Store checked values
+	        	} else {
+	        		inactiveFilters.push(checkbox.value); // Store unchecked values
+	        	}
+	        }); 
+	     	// Prepare URL-encoded data
+			const formData = new FormData();
+			
+			// Append the value of each checked checkbox to the FormData object
+		    activeFilters.forEach(value => {
+		        formData.append('activeFilters', value);
+		    });
+			
+			// Append the value of each unchecked checkbox to the FormData object
+		    inactiveFilters.forEach(value => {
+		        formData.append('inactiveFilters', value);
+		    });
+		    
+		 	// Log each key-value pair in the FormData object
+	        for (const [key, value] of formData.entries()) {
+	            console.log(key, `:`, value);
+	        }
+						
+			// Send the data to the server
+			fetch('/myFlorabase/EditActiveFilterServlet', {
+				method: 'POST',
+				body: formData // FormData handles setting the correct multipart/form-data header
+			})
+				.then(response => response.text())
+				.then(data => console.log('Server response:', data))
+				.catch(error => console.error('Error:', error));
+			
+	    }
+	 
+		// delete filter
+		function deleteFilter(filter_id) {
+			fetch('/myFlorabase/DeleteFilterServlet', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'filter_id=' + encodeURIComponent(filter_id)
+            })
+	            .then(response => response.text())
+				.then(data => console.log('Server response:', data))
+				.catch(error => console.error('Error:', error));
+			
+			setTimeout(function() {
+			    location.reload();
+			}, 3000);
+		}
+		
+
+
 		
 		
 	</script>
@@ -322,7 +385,7 @@
 				<h2>Default Zoom</h2>
 				<button class="secondary-button" onclick="editFilter(this)">Edit</button>
 			</span>
-			<p id="zoom"><%=mp.getZoom()%>%
+			<p id="zoom"><%=user.getZoom()%>%
 			</p>
 		</div>
 		<div id="filtersDiv">
@@ -333,8 +396,10 @@
 			<%
 			for (Filter f : filters) {
 			%>
-			<label class="checkbox-label prevent-select"> <input
-				type="checkbox" checked> <span class="checkbox"></span> <%=f.getFilterName()%></label>
+			<label class="checkbox-label prevent-select"> 
+			<input
+				type="checkbox" value="<%=f.getFilterId()%>" class="filters-checkbox" <%=f.isActive() ? "checked" : "" %> onchange="updateActiveFilters()"> 
+				<span class="checkbox"></span> <%=f.getFilterName()%> <%=f.getFilterId() != 1 ? "<button class=\"icon-button\"> <img id=\"trash-icon\" onclick=\"deleteFilter(" + f.getFilterId()+ ")\" src=\"assets/trash_icon.svg\" width=\"20\" height=\"20\" class=\"icon-shown\"></button>" :"" %></label>
 			<%
 			}
 			%>

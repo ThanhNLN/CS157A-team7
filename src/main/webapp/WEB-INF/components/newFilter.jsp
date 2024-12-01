@@ -58,7 +58,19 @@
 			<form id="filterForm" onsubmit="submitFilter(event)" method="POST">
 				<div class="form-group" id="filter-name-group">
 					<label class="required textfield-label" for="filterName">Filter Name</label> 
-					<input type="text" id="filterName" name="filterName" placeholder="Give this filter a name" />
+					<input type="text" id="filterName" name="filterName" placeholder="Give this filter a name" required/>
+				</div>
+				<div class="form-group">
+					<label class="required" for="filterColor">Filter Color</label> 
+					<select id="filterColor" name="filterColor" required>
+						<option value="">--Please choose a color--</option>
+						<option value="red">Red</option>
+						<option value="orange">Orange</option>
+						<option value="yellow">Yellow</option>
+						<option value="green">Green</option>
+						<option value="blue">Blue</option>
+						<option value="purple">Purple</option>
+					</select>
 				</div>
 				<div class="form-group">
 					<label for="search-bar">Add Plants to the filter</label>
@@ -67,7 +79,7 @@
 				<div class="input-span">
 					<%for (Plant p : plants) {%>
 						<label class="checkbox-label prevent-select"> 
-							<input type="checkbox" name="selectedPlants" value="<%=p.getName()%>"> 
+							<input type="checkbox" name="selectedPlants" value="<%=p.getPlantId()%>"> 
 							<span class="checkbox"></span> 
 						<%=p.getName()%></label>
 					<%}%>

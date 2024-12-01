@@ -8,6 +8,9 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import com.example.User;
 
 @WebServlet("/updateMapPreference")
 public class UpdateMapPreferenceServlet extends HttpServlet {
@@ -15,10 +18,12 @@ public class UpdateMapPreferenceServlet extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		String preferenceId = request.getParameter("preferenceId");
-		String userId = request.getParameter("userId");
-		String filterId = request.getParameter("filterId");
-		String locationId = request.getParameter("locationId");
+//		String preferenceId = request.getParameter("preferenceId");
+		
+		HttpSession session = request.getSession(false);
+		User user = (User) session.getAttribute("user");
+//		String filterId = request.getParameter("filterId");
+//		String locationId = request.getParameter("locationId");
 		String zoom = request.getParameter("zoom");
 		
 		String databaseUser = "root";
@@ -30,10 +35,10 @@ public class UpdateMapPreferenceServlet extends HttpServlet {
             // creating a new MapPreference
             // only updating individual attributes
             if (zoom != null) {
-            	String sql = "UPDATE myflorabase.mappreference SET zoom = ? WHERE preference_id = ?";
+            	String sql = "UPDATE myflorabase.user SET zoom = ? WHERE user_id = ?;";
                 try (PreparedStatement statement = con.prepareStatement(sql)) {
                     statement.setInt(1, Integer.parseInt(zoom));
-                    statement.setInt(2, Integer.parseInt(preferenceId)); 
+                    statement.setInt(2,user.getUserId()); 
 
                     int rowsUpdated = statement.executeUpdate(); 
                     response.getWriter().write(rowsUpdated + " row(s) updated."); 

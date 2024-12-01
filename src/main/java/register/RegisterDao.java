@@ -59,10 +59,41 @@ public class RegisterDao {
             ps.setString(3, user.getDescription());
             ps.setBoolean(4, user.isAdmin());
             ps.executeUpdate();
+            
+            // get the user_id
+            String getUserId = "SELECT * FROM myflorabase.user WHERE username = '" + user.getUsername() + "'";
+            try{
+                PreparedStatement ps2 = con.prepareStatement(getUserId);
+                ResultSet resultSet = ps2.executeQuery();
+                if (resultSet.next()) {
+                	int userId = resultSet.getInt("user_id");
+                	user.setUserId(userId);
+                	// add default filter 
+                    String user_filterSQL = "INSERT INTO myflorabase.user_filter(user_id, filter_id) VALUES(?,?)";
+                    try {
+                    	PreparedStatement ps3 = con.prepareStatement(user_filterSQL);
+                    	ps3.setInt(1, user.getUserId());
+                    	ps3.setInt(2, 1); // default filter
+                    	ps3.executeUpdate();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        result=false;
+                    }
+                }
+                
+                
+            } catch (SQLException e) {
+                e.printStackTrace();
+                result=false;
+            }
+            
+            
         } catch (SQLException e) {
             e.printStackTrace();
             result=false;
         }
+        
+        
 
         return result;
     }

@@ -9,18 +9,18 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.*;
 
-@WebServlet("/report")
-public class ReportSightingServlet extends HttpServlet {
+@WebServlet("/admin")
+public class AdminPageServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-	public ReportSightingServlet() {
+	public AdminPageServlet() {
 		super();
 	}
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws IOException, ServletException {
 
-		request.setAttribute("reportSightingActive", "active"); // set active header tab
+		request.setAttribute("admin", "active"); // set active header tab
 
 		HttpSession curSession = request.getSession(false);
 		
@@ -29,7 +29,7 @@ public class ReportSightingServlet extends HttpServlet {
 			request.setAttribute("errorMessage", "Please Sign In again.");
 			request.getRequestDispatcher("login.jsp").forward(request, response);
 		} else {
-			RequestDispatcher dispatcher = request.getRequestDispatcher("sightings.jsp");
+			RequestDispatcher dispatcher = request.getRequestDispatcher("admin.jsp");
 			dispatcher.forward(request, response);
 		}
 
