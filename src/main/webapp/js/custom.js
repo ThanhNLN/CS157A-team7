@@ -1,8 +1,3 @@
-/*
- * @license
- * Copyright 2019 Google LLC. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0
- */
 let map;
 let clickedPosition;
 let AdvancedMarkerElement;
@@ -115,12 +110,22 @@ async function initMap() {
 		return;
 	}
 
+	const searchQuery = getSearchQuery(); // Get search query from the URL
+
 	try {
+		// Fetch all sightings
 		const response = await fetch("/myFlorabase/getSightings");
 		const sightings = await response.json();
 		console.log(sightings);
 		let sightingsArray = [];
 
+		// Remove any existing markers from the map
+		markersMap.forEach(markerData => {
+			markerData.marker.setMap(null);
+		});
+		markersMap.clear();
+
+		// Add markers based on the fetched sightings
 		for (const sighting of sightings) {
 			try {
 				const infoResponse = await fetch(`/myFlorabase/getSightingInfo?userId=${sighting.userId}&plantId=${sighting.plantId}&locationId=${sighting.locationId}`, {
@@ -131,11 +136,15 @@ async function initMap() {
 				sightingsArray.push(info);
 
 				const location = { lat: info[2].latitude, lng: info[2].longitude };
-				const locationName = info[2].name.trim().toLowerCase(); // Normalize
-				const locationKey = locationName;
+				const locationKey = `${location.lat},${location.lng}`;
 				const plantName = info[1].name;
 				const sightingDescription = sighting.description;
 				const plantDescription = info[1].description;
+
+				// Filter based on search query
+				if (searchQuery && !plantName.toLowerCase().includes(searchQuery.toLowerCase())) {
+					continue;
+				}
 
 				let locationHeader = 
 					`<div>
@@ -146,14 +155,11 @@ async function initMap() {
 
 				let infoContent = 
 					`<div>
-						<h4>Plant Sightings:</h4>
-						<p><strong>Sighting ID:</strong> ${sighting.sightingId}</p>
-						<p><strong>Plant ID:</strong> ${info[1].plantId}</p>
-						<p><strong>Plant Name:</strong> ${plantName}</p>
-						<p><strong>Scientific Name:</strong> ${info[1].scientificName}</p>
-						<p><strong>Reported By:</strong> ${info[0].username}</p>
-						<p><strong>Sighting Description:</strong> ${sightingDescription}</p>
-						<p><strong>Plant Description:</strong> ${plantDescription}</p>
+						<h3>Plant Name: ${plantName}</h3>
+						<p>Scientific Name: ${info[1].scientificName}</p>
+						<p>Reported By: ${info[0].username}</p>
+						<p>Sighting Description: ${sightingDescription}</p>
+						<p>Plant Description: ${plantDescription}</p>
 					</div>`;
 
 				if (sighting.photo && sighting.photo.length > 0) {
@@ -161,49 +167,40 @@ async function initMap() {
 					infoContent += `<img src="data:image/jpeg;base64,${photoBase64}" alt="Sighting Photo" style="max-width: 200px; max-height: 200px;"/>`;
 				}
 
+				// Combine and remove existing marker if there's already one at this location
 				if (markersMap.has(locationKey)) {
 					const existingMarkerData = markersMap.get(locationKey);
+					// Combine the existing content with the new sighting content without repeating locationHeader
+					const combinedContent = existingMarkerData.infoContent + '<hr/>' + infoContent;
 					existingMarkerData.marker.setMap(null); // Remove old marker
-					markersMap.delete(locationKey); // Delete old marker from map
-
-					// Create new marker with combined content
-					const newMarkerContent = existingMarkerData.infoContent + '<hr/>' + infoContent;
-					const newMarker = new AdvancedMarkerElement({
-						map: map,
-						position: location,
-						title: info[2].name,
-					});
-					console.log('Updated marker added for location:', info[2].name);
-
-					markersMap.set(locationKey, {
-						marker: newMarker,
-						infoContent: newMarkerContent
-					});
-					attachInfoWindow(newMarker, newMarkerContent);
+					markersMap.delete(locationKey); // Delete old marker entry
+					infoContent = combinedContent; // Update infoContent to combined content
 				} else {
-					// Create and store a new marker if one does not exist at this location
-					const newMarker = new AdvancedMarkerElement({
-						map: map,
-						position: location,
-						title: info[2].name,
-					});
-					console.log('Marker added for location:', info[2].name);
-
-					markersMap.set(locationKey, {
-						marker: newMarker,
-						infoContent: infoContent
-					});
-					attachInfoWindow(newMarker, locationHeader + infoContent);
+					infoContent = locationHeader + infoContent; // Add location header for new markers
 				}
+
+				// Create and store a new marker
+				const newMarker = new AdvancedMarkerElement({
+					map: map,
+					position: location,
+					title: plantName,
+				});
+				console.log('Marker added for location:', info[2].name);
+
+				markersMap.set(locationKey, {
+					marker: newMarker,
+					infoContent: infoContent
+				});
+				attachInfoWindow(newMarker, infoContent);
 			} catch (error) {
 				console.error("Issue with fetching from getSightingInfo:", error);
 			}
 		}
 		console.log("Parsed Sightings Array: ", sightingsArray);
 	} catch (error) {
-		console.error("Issue with fetching from getSightings:", error);
+		console.error("Issue with fetching sightings:", error);
 	}
-	
+
 	// Helper function to convert byte array to base64 string
 	function arrayBufferToBase64(buffer) {
 		let binary = '';
@@ -215,27 +212,32 @@ async function initMap() {
 	}
 	
 	// Commented out the pollen-related map overlay initialization
-	// const pollenMapType = new PollenMapType(new google.maps.Size(256, 256), apiKey);
-	// map.overlayMapTypes.insertAt(0, pollenMapType);
+		// const pollenMapType = new PollenMapType(new google.maps.Size(256, 256), apiKey);
+		// map.overlayMapTypes.insertAt(0, pollenMapType);
 
-	// Commented out pollen map type update listeners
-	/*
-	document.getElementById("tree").addEventListener("click", function() {
-		pollen = "TREE_UPI";
-		updatePollenMapType(map, apiKey);
-	});
-	document.getElementById("grass").addEventListener("click", function() {
-		pollen = "GRASS_UPI";
-		updatePollenMapType(map, apiKey);
-	});
-	document.getElementById("weed").addEventListener("click", function() {
-		pollen = "WEED_UPI";
-		updatePollenMapType(map, apiKey);
-	});
-	document.getElementById("none").addEventListener("click", function() {
-		map.overlayMapTypes.removeAt(0);
-	});
-	*/
+		// Commented out pollen map type update listeners
+		/*
+		document.getElementById("tree").addEventListener("click", function() {
+			pollen = "TREE_UPI";
+			updatePollenMapType(map, apiKey);
+		});
+		document.getElementById("grass").addEventListener("click", function() {
+			pollen = "GRASS_UPI";
+			updatePollenMapType(map, apiKey);
+		});
+		document.getElementById("weed").addEventListener("click", function() {
+			pollen = "WEED_UPI";
+			updatePollenMapType(map, apiKey);
+		});
+		document.getElementById("none").addEventListener("click", function() {
+			map.overlayMapTypes.removeAt(0);
+		});
+		*/
+}
+
+function getSearchQuery() {
+	const urlParams = new URLSearchParams(window.location.search);
+	return urlParams.get('searchQuery') || '';
 }
 
 window.initMap = initMap;
