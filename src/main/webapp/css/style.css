@@ -748,3 +748,9 @@ select#filterColor {
 	margin-top: 10px;
 	display: none;
 }
+
+#searchResultsUnderline {
+	width: 215px;
+	border-bottom: solid #308023 2px;
+	margin-bottom: 10px;
+}

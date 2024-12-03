@@ -236,8 +236,8 @@ async function initMap() {
 }
 
 function getSearchQuery() {
-	const urlParams = new URLSearchParams(window.location.search);
-	return urlParams.get('searchQuery') || '';
+	const searchBar = document.getElementById("searchBar");
+	return searchBar.value != null ? searchBar.value : "";
 }
 
 window.initMap = initMap;

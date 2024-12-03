@@ -1,29 +1,29 @@
 <%@ page
-	import="java.sql.*, java.util.Properties, com.google.gson.Gson, java.io.FileInputStream, java.io.IOException, java.util.HashMap, java.util.List, java.util.ArrayList, com.example.Sighting, com.example.User, com.example.Plant, java.util.Date" %>
+	import="java.sql.*, java.util.Properties, com.google.gson.Gson, java.io.FileInputStream, java.io.IOException, java.util.HashMap, java.util.List, java.util.ArrayList, com.example.Sighting, com.example.User, com.example.Plant, java.util.Date"%>
 <%
-	String apiKey = System.getenv("GOOGLE_MAPS_API_KEY");
-	HttpSession curSession = request.getSession(false);
-	User user = (User) curSession.getAttribute("user");
-	String userJson = new Gson().toJson(user);
-	boolean sightingsPage = true;
-	if (request.getAttribute("mySightingActive") != null) {
-		sightingsPage = false;
-	}
+String apiKey = System.getenv("GOOGLE_MAPS_API_KEY");
+HttpSession curSession = request.getSession(false);
+User user = (User) curSession.getAttribute("user");
+String userJson = new Gson().toJson(user);
+boolean mySightingsPage = false;
+if (request.getAttribute("mySightingActive") != null) {
+	mySightingsPage = true;
+}
 %>
 <!DOCTYPE html>
 <html>
 <head>
-	<title><%=sightingsPage ? "Sightings" : "My Sightings"%></title>
-	<!-- Link to External CSS -->
-	<link rel="icon" href="assets/myFlorabase_Logo_No_Text.svg"
-		type="image/svg">
-	<link rel="stylesheet" type="text/css" href="./css/modals.css">
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
-		rel="stylesheet">
-	<link rel="stylesheet" href="css/style.css">
+<title><%=!mySightingsPage ? "Sightings" : "My Sightings"%></title>
+<!-- Link to External CSS -->
+<link rel="icon" href="assets/myFlorabase_Logo_No_Text.svg"
+	type="image/svg">
+<link rel="stylesheet" type="text/css" href="./css/modals.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+	href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
+	rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 	<div id="sightingsPage" class="sightingsPage">
@@ -46,38 +46,37 @@
 			</div>
 			<div class="column sightings-column">
 				<div class="sightings-component sightings-column-div">
-					<span class="sightings-title"><h1 class="pageTitle"><%=sightingsPage ? "Sightings" : "My Sightings"%></h1>
+					<span class="sightings-title"><h1 class="pageTitle"><%=!mySightingsPage ? "Sightings" : "My Sightings"%></h1>
 						<div>
 							<img src='assets/filter_icon.svg' width="30" height="30"
 								onclick="showFilterDropdown()" /> <span id="filterDropdown">
-									<div>
-										<label class="checkbox-label prevent-select"> <input
-											id="mostRecentCheckbox" type="checkbox"
-											onchange="dropdownSubmit(this)"> <span
-											class="checkbox"></span> Most Recent
-										</label> <label class="checkbox-label prevent-select"> <input
-											id="oldestCheckbox" type="checkbox"
-											onchange="dropdownSubmit(this)"> <span
-											class="checkbox"></span> Oldest
-										</label> <span id="filterDropdownCloseButton">
-											<button class="major-button secondary-button" type="button"
-												onclick="hideFilterDropdown()">Close</button>
-										</span>
-									</div>
+								<div>
+									<label class="checkbox-label prevent-select"> <input
+										id="mostRecentCheckbox" type="checkbox"
+										onchange="dropdownSubmit(this)"> <span
+										class="checkbox"></span> Most Recent
+									</label> <label class="checkbox-label prevent-select"> <input
+										id="oldestCheckbox" type="checkbox"
+										onchange="dropdownSubmit(this)"> <span
+										class="checkbox"></span> Oldest
+									</label> <span id="filterDropdownCloseButton">
+										<button class="major-button secondary-button" type="button"
+											onclick="hideFilterDropdown()">Close</button>
+									</span>
+								</div>
 
 							</span>
 						</div> </span>
 					<!-- Search bar -->
 					<%
-					if (sightingsPage) {
+					if (!mySightingsPage) {
 					%>
 					<div class="search-container">
-					    <form action="sightings" method="get">
-					        <input id="searchBar" type="text" class="icon" name="searchQuery"
-					            placeholder="Search for a specific plant"
-					            oninput="handleInputSanitization()" required />
-					    </form>
+						<input id="searchBar" type="text" class="icon" name="searchQuery"
+							onkeydown="searchBarQuery(event)"
+							placeholder="Search for a specific plant" />
 					</div>
+					<div id="searchResultsLabel"></div>
 					<%
 					} else {
 					%>
@@ -100,8 +99,10 @@
 	<script src="./js/buttons.js"></script>
 	<script src="./js/modal.js"></script>
 	<script>
+		var allSightings = [];
+		var enterPressed = false;
 		window.addEventListener("load", function() {
-			const isSightingsPage = <%=sightingsPage%>;
+			const isSightingsPage = <%=!mySightingsPage%>;
 			const sightingsListContainer = document.getElementById('sightingsList');
 			fetch("/myFlorabase/getSightings")
 			.then(response => {
@@ -122,10 +123,12 @@
 					  if (isSightingsPage) {
 						  const sightingComponent = createSighting(sighting, info[0], info[1], info[2], curUser);
 					  	sightingsListContainer.appendChild(sightingComponent);
+					  	allSightings.push(sightingsComponent.cloneNode(true));
 					  } else {
 						  if (info[0].username === curUser.username) {
 							  const sightingComponent = createSighting(sighting, info[0], info[1], info[2], curUser);
 					  		sightingsListContainer.appendChild(sightingComponent);
+					  		allSightings.push(sightingsComponent.cloneNode(true));
 						  }
 					  }
 				  })
@@ -147,6 +150,41 @@
 		function hideFilterDropdown() {
 			const dropdownContainer = document.getElementById("filterDropdown");
 			dropdownContainer.style.display = "none";
+		}
+		
+		function searchBarQuery(event) {
+			const sightingsList = document.getElementById("sightingsList");
+			const searchBarLabelDiv = document.getElementById("searchResultsLabel");
+			searchBarLabelDiv.innerHTML = "";
+			if (event.key === "Enter") {
+				const sightingsArr = enterPressed ? allSightings : Array.from(sightingsList.children);
+				const searchQuery = getSearchQuery().trim().toLowerCase();
+				if (searchQuery === "") {
+					sightingsList.replaceChildren(...allSightings);
+				} else {
+					searchBarLabelDiv.classList.add('prevent-select');
+					const selectedMarkerResult = document.createElement("h3");
+					selectedMarkerResult.style.marginBottom = "5px";
+					selectedMarkerResult.textContent = "Selected Marker Result";
+					const underline = document.createElement("div");
+					underline.id = "searchResultsUnderline";
+					const searchNum = document.createElement("p");
+					searchNum.style.marginBottom = "20px";
+					const newSightingsArr = sightingsArr.filter((node) => {
+					    const plantName = node.childNodes[0].childNodes[0].childNodes[1].childNodes[0].childNodes[0].textContent.trim().toLowerCase();
+						return plantName === searchQuery;
+					});
+					searchNum.textContent = newSightingsArr.length + " sighting" + (newSightingsArr.length === 1 ? " " : "s ") + "for this plant";
+					searchBarLabelDiv.appendChild(selectedMarkerResult);
+					searchBarLabelDiv.appendChild(underline);
+					searchBarLabelDiv.appendChild(searchNum);
+					sightingsList.replaceChildren(...newSightingsArr);
+					if (!enterPressed) {
+						allSightings = sightingsArr;
+					}
+				}
+				enterPressed = true;
+			} 
 		}
 
 		function dropdownSubmit(checkbox) {
