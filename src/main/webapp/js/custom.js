@@ -3,7 +3,7 @@ let clickedPosition;
 let AdvancedMarkerElement;
 const markersMap = new Map(); // Keeps track of markers by coordinates
 let infoWindow; // Single InfoWindow instance
-// let pollen = "TREE_UPI";
+//let pollen = "TREE_UPI";
 
 class PollenMapType {
 	constructor(tileSize, apiKey) {
@@ -52,19 +52,16 @@ function updatePollenMapType(map, apiKey) {
 }
 
 function attachInfoWindow(marker, content) {
-	marker.addListener('click', function() {
-		// If there's an open infoWindow, close it first
+	marker.addListener('click', function () {
 		if (infoWindow) {
 			infoWindow.close();
 		}
 
-		// Create and open new infoWindow
 		infoWindow = new google.maps.InfoWindow({
 			content: content
 		});
 
-		// Add close listener to clean up when infoWindow is closed
-		google.maps.event.addListener(infoWindow, 'closeclick', function() {
+		google.maps.event.addListener(infoWindow, 'closeclick', function () {
 			infoWindow = null;
 		});
 
@@ -90,15 +87,15 @@ async function initMap() {
 		title: "SJSU",
 	});
 
-	attachInfoWindow(marker, 
-		`<div>
+	attachInfoWindow(marker, `
+		<div>
 			<h3>SJSU</h3>
 			<p>Location: San Jose State University</p>
 			<p>Reported by: Admin</p>
-		</div>`
-	);
+		</div>
+	`);
 
-	map.addListener('click', function(event) {
+	map.addListener('click', function (event) {
 		clickedPosition = event.latLng;
 		openModal(clickedPosition);
 	});
@@ -110,7 +107,11 @@ async function initMap() {
 		return;
 	}
 
-	const searchQuery = getSearchQuery(); // Get search query from the URL
+	updateMapWithSightings();
+}
+
+async function updateMapWithSightings() {
+	const searchQuery = getSearchQuery(); // Get search query from the search bar
 
 	try {
 		// Fetch all sightings
@@ -119,6 +120,15 @@ async function initMap() {
 		console.log(sightings);
 		let sightingsArray = [];
 
+		let filterArray = [];
+		if (!searchQuery) {
+			const filterResponse = await fetch("/myFlorabase/GetFilterServlet", {
+				method: 'GET'
+			});
+			filterArray = await filterResponse.json();
+			console.log(filterArray);
+		}
+						
 		// Remove any existing markers from the map
 		markersMap.forEach(markerData => {
 			markerData.marker.setMap(null);
@@ -145,16 +155,21 @@ async function initMap() {
 				if (searchQuery && !plantName.toLowerCase().includes(searchQuery.toLowerCase())) {
 					continue;
 				}
+				
+				if (!searchQuery && filterArray.length > 0 && filterArray.includes(plantName)) {
+					console.log(`Filtered out plant: ${plantName}`);
+					continue;
+				}
 
-				let locationHeader = 
-					`<div>
+				let locationHeader = `
+					<div>
 						<h3>Location: ${info[2].name} (Location ID: ${info[2].locationId})</h3>
 						<p>Latitude: ${info[2].latitude}, Longitude: ${info[2].longitude}</p>
 						<hr/>
 					</div>`;
 
-				let infoContent = 
-					`<div>
+				let infoContent = `
+					<div>
 						<h3>Plant Name: ${plantName}</h3>
 						<p>Scientific Name: ${info[1].scientificName}</p>
 						<p>Reported By: ${info[0].username}</p>
@@ -170,13 +185,12 @@ async function initMap() {
 				// Combine and remove existing marker if there's already one at this location
 				if (markersMap.has(locationKey)) {
 					const existingMarkerData = markersMap.get(locationKey);
-					// Combine the existing content with the new sighting content without repeating locationHeader
 					const combinedContent = existingMarkerData.infoContent + '<hr/>' + infoContent;
-					existingMarkerData.marker.setMap(null); // Remove old marker
-					markersMap.delete(locationKey); // Delete old marker entry
-					infoContent = combinedContent; // Update infoContent to combined content
+					existingMarkerData.marker.setMap(null);
+					markersMap.delete(locationKey);
+					infoContent = combinedContent;
 				} else {
-					infoContent = locationHeader + infoContent; // Add location header for new markers
+					infoContent = locationHeader + infoContent;
 				}
 
 				// Create and store a new marker
@@ -200,46 +214,52 @@ async function initMap() {
 	} catch (error) {
 		console.error("Issue with fetching sightings:", error);
 	}
-
-	// Helper function to convert byte array to base64 string
-	function arrayBufferToBase64(buffer) {
-		let binary = '';
-		const bytes = new Uint8Array(buffer);
-		for (let i = 0; i < bytes.byteLength; i++) {
-			binary += String.fromCharCode(bytes[i]);
-		}
-		return btoa(binary);
-	}
 	
 	// Commented out the pollen-related map overlay initialization
-		// const pollenMapType = new PollenMapType(new google.maps.Size(256, 256), apiKey);
-		// map.overlayMapTypes.insertAt(0, pollenMapType);
+	// const pollenMapType = new PollenMapType(new google.maps.Size(256, 256), apiKey);
+	// map.overlayMapTypes.insertAt(0, pollenMapType);
 
-		// Commented out pollen map type update listeners
-		/*
-		document.getElementById("tree").addEventListener("click", function() {
-			pollen = "TREE_UPI";
-			updatePollenMapType(map, apiKey);
-		});
-		document.getElementById("grass").addEventListener("click", function() {
-			pollen = "GRASS_UPI";
-			updatePollenMapType(map, apiKey);
-		});
-		document.getElementById("weed").addEventListener("click", function() {
-			pollen = "WEED_UPI";
-			updatePollenMapType(map, apiKey);
-		});
-		document.getElementById("none").addEventListener("click", function() {
-			map.overlayMapTypes.removeAt(0);
-		});
-		*/
+	// Commented out pollen map type update listeners
+	/*
+	document.getElementById("tree").addEventListener("click", function() {
+		pollen = "TREE_UPI";
+		updatePollenMapType(map, apiKey);
+	});
+	document.getElementById("grass").addEventListener("click", function() {
+		pollen = "GRASS_UPI";
+		updatePollenMapType(map, apiKey);
+	});
+	document.getElementById("weed").addEventListener("click", function() {
+		pollen = "WEED_UPI";
+		updatePollenMapType(map, apiKey);
+	});
+	document.getElementById("none").addEventListener("click", function() {
+		map.overlayMapTypes.removeAt(0);
+	});
+	*/
 }
 
 function getSearchQuery() {
 	const searchBar = document.getElementById("searchBar");
-	return searchBar.value != null ? searchBar.value : "";
+	return searchBar ? searchBar.value : "";
+}
+
+document.getElementById("searchBar").addEventListener("keyup", function (event) {
+	if (event.key === "Enter") {
+		updateMapWithSightings();
+	}
+});
+
+// Helper function to convert byte array to base64 string
+function arrayBufferToBase64(buffer) {
+	let binary = '';
+	const bytes = new Uint8Array(buffer);
+	for (let i = 0; i < bytes.byteLength; i++) {
+		binary += String.fromCharCode(bytes[i]);
+	}
+	return btoa(binary);
 }
 
 window.initMap = initMap;
-console.log("Test");
+console.log("bruh1");
 initMap();

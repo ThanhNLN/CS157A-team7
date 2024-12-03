@@ -67,7 +67,7 @@ try {
 						 />
           <label class="invalid" id="filterNameStatus"></label>
 				</div>
-				<div id="colorSelectGroup" class="form-group">
+				<!-- <div id="colorSelectGroup" class="form-group">
 					<label id="filterModalColorLabel" class="required textfield-label"
 						for="filterColor">Filter Color</label> <select id="filterColor"
 						name="filterColor">
@@ -79,7 +79,7 @@ try {
 						<option value="blue">Blue</option>
 						<option value="purple">Purple</option>
 					</select>
-				</div>
+				</div> -->
 				<div class="form-group">
 					<label id="filterModalPlantLabel" class="textfield-label"
 						for="search-bar"></label>
